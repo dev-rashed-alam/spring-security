@@ -11,6 +11,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
+import static com.example.demo.security.AppUserRole.ADMIN;
+import static com.example.demo.security.AppUserRole.STUDENT;
+
 @Configuration
 public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
@@ -23,14 +26,17 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests().antMatchers("/api/v1/students/{studentId}").permitAll().anyRequest().authenticated().and().httpBasic();
+        http.authorizeRequests().antMatchers("/").permitAll()
+                .antMatchers("/api/**").hasRole(STUDENT.name()).anyRequest().authenticated().and().httpBasic();
     }
 
     @Override
     @Bean
     protected UserDetailsService userDetailsService() {
-        UserDetails rashedAlamUser = User.builder().username("Rashed Alam").password(passwordEncoder.encode("password")).roles("STUDENT").build();
+        UserDetails userRashed = User.builder().username("Rashed").password(passwordEncoder.encode("password")).roles(STUDENT.name()).build();
 
-        return new InMemoryUserDetailsManager(rashedAlamUser);
+        UserDetails userAlam = User.builder().username("Alam").password(passwordEncoder.encode("password")).roles(ADMIN.name()).build();
+
+        return new InMemoryUserDetailsManager(userRashed, userAlam);
     }
 }
