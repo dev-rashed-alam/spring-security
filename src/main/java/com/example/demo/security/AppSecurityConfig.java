@@ -3,6 +3,7 @@ package com.example.demo.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
@@ -11,8 +12,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
-import static com.example.demo.security.AppUserRole.ADMIN;
-import static com.example.demo.security.AppUserRole.STUDENT;
+import static com.example.demo.security.AppUserPermission.COURSE_WRITE;
+import static com.example.demo.security.AppUserRole.*;
 
 @Configuration
 public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -26,17 +27,26 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests().antMatchers("/").permitAll()
-                .antMatchers("/api/**").hasRole(STUDENT.name()).anyRequest().authenticated().and().httpBasic();
+        http.csrf().disable()
+                .authorizeRequests()
+                .antMatchers("/").permitAll()
+                .antMatchers("/api/**").hasRole(STUDENT.name())
+                .antMatchers(HttpMethod.DELETE, "/management/api/**").hasAuthority(COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.POST, "/management/api/**").hasAuthority(COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.PUT, "/management/api/**").hasAuthority(COURSE_WRITE.getPermission())
+                .antMatchers(HttpMethod.GET, "/management/api/**").hasAnyRole(ADMIN.name(), ADMINTRAINEE.name())
+                .anyRequest().authenticated().and().httpBasic();
     }
 
     @Override
     @Bean
     protected UserDetailsService userDetailsService() {
-        UserDetails userRashed = User.builder().username("Rashed").password(passwordEncoder.encode("password")).roles(STUDENT.name()).build();
+        UserDetails studentUser = User.builder().username("Student").password(passwordEncoder.encode("password")).authorities(STUDENT.getGrantedAuthorities()).build();
 
-        UserDetails userAlam = User.builder().username("Alam").password(passwordEncoder.encode("password")).roles(ADMIN.name()).build();
+        UserDetails adminUser = User.builder().username("Admin").password(passwordEncoder.encode("password")).authorities(ADMIN.getGrantedAuthorities()).build();
 
-        return new InMemoryUserDetailsManager(userRashed, userAlam);
+        UserDetails traineeUser = User.builder().username("Trainee").password(passwordEncoder.encode("password")).authorities(ADMINTRAINEE.getGrantedAuthorities()).build();
+
+        return new InMemoryUserDetailsManager(studentUser, adminUser, traineeUser);
     }
 }
