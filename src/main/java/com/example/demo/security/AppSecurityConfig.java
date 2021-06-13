@@ -11,7 +11,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import static com.example.demo.security.AppUserRole.*;
 
@@ -28,12 +27,14 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .and()
+        http.csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/").permitAll()
                 .antMatchers("/api/**").hasRole(STUDENT.name())
-                .anyRequest().authenticated().and().httpBasic();
+                .anyRequest().authenticated()
+                .and().formLogin()
+                .loginPage("/login").permitAll()
+                .defaultSuccessUrl("/dashboard", true)
+                .and().rememberMe().rememberMeParameter("remember");
     }
 
     @Override
