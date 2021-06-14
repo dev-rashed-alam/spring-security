@@ -1,31 +1,32 @@
 package com.example.demo.security;
 
+import com.example.demo.auth.AppUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.util.concurrent.TimeUnit;
 
-import static com.example.demo.security.AppUserRole.*;
+import static com.example.demo.security.AppUserRole.STUDENT;
 
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PasswordEncoder passwordEncoder;
+    private final AppUserService appUserService;
 
     @Autowired
-    public AppSecurityConfig(PasswordEncoder passwordEncoder) {
+    public AppSecurityConfig(PasswordEncoder passwordEncoder, AppUserService appUserService) {
         this.passwordEncoder = passwordEncoder;
+        this.appUserService = appUserService;
     }
 
     @Override
@@ -54,14 +55,15 @@ public class AppSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(daoAuthenticationProvider());
+    }
+
     @Bean
-    protected UserDetailsService userDetailsService() {
-        UserDetails studentUser = User.builder().username("Student").password(passwordEncoder.encode("password")).authorities(STUDENT.getGrantedAuthorities()).build();
-
-        UserDetails adminUser = User.builder().username("Admin").password(passwordEncoder.encode("password")).authorities(ADMIN.getGrantedAuthorities()).build();
-
-        UserDetails traineeUser = User.builder().username("Trainee").password(passwordEncoder.encode("password")).authorities(ADMINTRAINEE.getGrantedAuthorities()).build();
-
-        return new InMemoryUserDetailsManager(studentUser, adminUser, traineeUser);
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(appUserService);
+        return provider;
     }
 }
